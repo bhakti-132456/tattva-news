@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50">
+  <rect width="200" height="50" fill="#0F172A"/>
+  <text x="100" y="32" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">TATTVA</text>
+  <circle cx="175" cy="25" r="6" fill="#EF4444"/>
+</svg>
