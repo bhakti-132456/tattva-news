@@ -1970,11 +1970,11 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
 }
 
 .hero-nav-prev {
-  left: 1rem;
+  left: 3rem;
 }
 
 .hero-nav-next {
-  right: 1rem;
+  right: 3rem;
 }
 
 /* Slide Indicators */
@@ -2464,8 +2464,8 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
 /* Cricket Specific Override to fit bar */
 .market-score-row {
   display: flex;
-  flex-direction: row;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.1rem;
   color: white;
 }
 
