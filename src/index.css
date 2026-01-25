@@ -258,10 +258,10 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  /* Reduced from 2.5rem */
-  padding-bottom: 1rem;
-  /* Reduced from 1.5rem */
+  margin-bottom: 0;
+  /* No gap with market bar */
+  padding-bottom: 0.5rem;
+  /* Tightened */
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   gap: 1rem;
   flex-wrap: wrap;
@@ -286,6 +286,8 @@ a {
   display: flex;
   gap: 1rem;
   align-items: center;
+  padding-right: 4rem;
+  /* More gap from right edge */
 }
 
 .weather-city {
@@ -1845,14 +1847,16 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
   z-index: 10;
   display: flex;
   align-items: flex-end;
-  padding: 6rem 8rem 6rem 8rem;
-  /* Increased padding */
+  /* Keep bottom aligned but provide room */
+  padding: 8rem 6rem 4rem 6rem;
+  /* Top padding (8rem) prevents clipping at top bar */
   transition: all 0.4s ease;
 }
 
 .hero-slide-inner {
-  max-width: 600px;
-  margin-right: 4rem;
+  max-width: 650px;
+  /* Slightly wider for better line breaks */
+  margin-right: 2rem;
 }
 
 .hero-audio-badge {
@@ -1883,20 +1887,22 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
 
 .hero-slide-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 3.5rem;
+  font-size: 2.8rem;
+  /* Reduced to fit better */
   font-weight: 700;
   color: white;
-  line-height: 1.1;
+  line-height: 1.15;
   margin-bottom: 1.25rem;
   text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .hero-slide-excerpt {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
+  /* Slightly reduced */
   color: rgba(255, 255, 255, 0.85);
   line-height: 1.6;
   margin-bottom: 1rem;
-  max-width: 550px;
+  max-width: 600px;
 }
 
 .hero-slide-meta {
@@ -2338,6 +2344,8 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
   width: calc(100% + 6rem);
   margin-left: -3rem;
   margin-right: -3rem;
+  margin-top: -1px;
+  /* Overlap header border for flush look */
   background: var(--navy);
   color: white;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
