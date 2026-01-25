@@ -22,7 +22,9 @@ const Admin = () => {
     });
     const [imageFile, setImageFile] = useState(null);
     const [audioFile, setAudioFile] = useState(null);
-    const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', 'loading'
+    const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', 'loading', 'publishing'
+    const [showReview, setShowReview] = useState(false);
+    const [previewData, setPreviewData] = useState(null);
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -57,51 +59,40 @@ const Admin = () => {
         });
     };
 
-    const handleSubmit = async (e) => {
+    const handleReview = async (e) => {
         e.preventDefault();
-        setSubmitStatus('loading');
+
+        const newStory = {
+            title: formData.title,
+            excerpt: formData.excerpt,
+            category: formData.category,
+            author: formData.author || 'Editorial Team',
+            image: imageFile ? await convertToBase64(imageFile) : '/placeholder-news.jpg',
+            hasAudio: formData.hasAudio,
+            audioDuration: formData.hasAudio ? '5:00' : null,
+            audioSrc: formData.hasAudio ? '/audio-placeholder.mp3' : '',
+            contentHTML: formData.content.split('\n').map(p => `<p>${p}</p>`).join(''),
+            readTime: `${Math.ceil(formData.content.length / 500)} min read`
+        };
+
+        setPreviewData(newStory);
+        setShowReview(true);
+    };
+
+    const handleConfirmPublish = async () => {
+        setShowReview(false);
+        setSubmitStatus('publishing');
 
         try {
-            let imageUrl = '/placeholder-news.jpg'; // Default
-            let audioUrl = '';
+            // First, save locally for immediate feedback (optional, but good for "pending" state)
+            addStory(previewData);
 
-            if (imageFile) {
-                try {
-                    imageUrl = await convertToBase64(imageFile);
-                } catch (err) {
-                    console.error("Image upload failed", err);
-                }
-            }
+            // Now push to site (we'll implement this function next)
+            const { publishToSite } = await import('../utils/storyManager');
+            const success = await publishToSite(previewData);
 
-            if (formData.hasAudio && audioFile) {
-                // For audio, DataURL might be too large for LS. 
-                // We'll try, but fallback to a dummy if it fails or just warn.
-                // Actually, for a demo, let's just use a placeholder if it's too big, 
-                // or just store the name.
-                audioUrl = '/audio-placeholder.mp3';
-                // We won't actually store the audio file in LS as it will crash the quota instantly.
-                // We'll simulate it.
-                console.log("Audio file selected (not stored in LS due to size limits):", audioFile.name);
-            }
-
-            const newStory = {
-                title: formData.title,
-                excerpt: formData.excerpt,
-                category: formData.category,
-                author: formData.author || 'Editorial Team',
-                image: imageUrl,
-                hasAudio: formData.hasAudio,
-                audioDuration: formData.hasAudio ? '5:00' : null,
-                audioSrc: audioUrl,
-                contentHTML: formData.content.split('\n').map(p => `<p>${p}</p>`).join(''),
-                readTime: `${Math.ceil(formData.content.length / 500)} min read`
-            };
-
-            const result = addStory(newStory);
-
-            if (result) {
+            if (success) {
                 setSubmitStatus('success');
-                // Reset form
                 setFormData({
                     title: '',
                     excerpt: '',
@@ -112,7 +103,7 @@ const Admin = () => {
                 });
                 setImageFile(null);
                 setAudioFile(null);
-                setTimeout(() => setSubmitStatus(null), 3000);
+                setTimeout(() => setSubmitStatus(null), 5000);
             } else {
                 setSubmitStatus('error');
             }
@@ -165,17 +156,24 @@ const Admin = () => {
 
                     {submitStatus === 'success' && (
                         <div style={{ padding: '1rem', background: '#dcfce7', color: '#166534', borderRadius: '0.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <CheckCircle size={20} /> Article published successfully!
+                            <CheckCircle size={20} /> Article published and pushed to GitHub!
+                        </div>
+                    )}
+
+                    {submitStatus === 'publishing' && (
+                        <div style={{ padding: '1rem', background: '#eff6ff', color: '#1e40af', borderRadius: '0.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div className="animate-spin" style={{ width: '20px', height: '20px', border: '2px solid #1e40af', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
+                            Publishing to real site... this may take a moment.
                         </div>
                     )}
 
                     {submitStatus === 'error' && (
                         <div style={{ padding: '1rem', background: '#fee2e2', color: '#991b1b', borderRadius: '0.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <AlertCircle size={20} /> Failed to publish article. LocalStorage might be full.
+                            <AlertCircle size={20} /> Failed to publish article. Check if GITHUB_TOKEN is set.
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} style={{ background: 'white', padding: '2rem', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0,0,0,0.1)' }}>
+                    <form onSubmit={handleReview} style={{ background: 'white', padding: '2rem', borderRadius: '1rem', boxShadow: '0 1px 3px 0 rgba(0,0,0,0.1)' }}>
                         <div style={{ display: 'grid', gap: '1.5rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>Title</label>
@@ -292,7 +290,7 @@ const Admin = () => {
 
                             <button
                                 type="submit"
-                                disabled={submitStatus === 'loading'}
+                                disabled={submitStatus === 'publishing'}
                                 style={{
                                     padding: '1rem',
                                     background: '#0F172A',
@@ -302,13 +300,57 @@ const Admin = () => {
                                     fontWeight: '600',
                                     cursor: 'pointer',
                                     marginTop: '1rem',
-                                    opacity: submitStatus === 'loading' ? 0.7 : 1
+                                    opacity: submitStatus === 'publishing' ? 0.7 : 1
                                 }}
                             >
-                                {submitStatus === 'loading' ? 'Publishing...' : 'Publish Article'}
+                                {submitStatus === 'publishing' ? 'Processing...' : 'Review & Publish'}
                             </button>
                         </div>
                     </form>
+
+                    {/* Review Modal */}
+                    {showReview && previewData && (
+                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                            <div className="animate-fade-in" style={{ background: 'white', width: '100%', maxWidth: '600px', borderRadius: '1rem', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                                <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white' }}>
+                                    <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: '700' }}>Review Content</h2>
+                                    <button onClick={() => setShowReview(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748B' }}>✕</button>
+                                </div>
+                                <div style={{ padding: '2rem' }}>
+                                    <div style={{ marginBottom: '1.5rem' }}>
+                                        <span className="category-tag">{previewData.category}</span>
+                                        <h1 style={{ fontSize: '1.5rem', fontWeight: '800', margin: '0.5rem 0', fontFamily: 'Outfit, sans-serif' }}>{previewData.title}</h1>
+                                        <p style={{ color: '#64748B', fontSize: '0.875rem' }}>By {previewData.author} • {previewData.readTime}</p>
+                                    </div>
+
+                                    {previewData.image && (
+                                        <img src={previewData.image} alt="Preview" style={{ width: '100%', height: '200px', objectFit: 'cover', borderRadius: '0.5rem', marginBottom: '1.5rem' }} />
+                                    )}
+
+                                    <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1.5rem' }}>
+                                        <p style={{ fontStyle: 'italic', color: '#475569' }}>{previewData.excerpt}</p>
+                                    </div>
+
+                                    <div style={{ color: '#334155', lineHeight: '1.6' }} dangerouslySetInnerHTML={{ __html: previewData.contentHTML }} />
+
+                                    <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                                        <button
+                                            onClick={handleConfirmPublish}
+                                            style={{ flex: 1, padding: '1rem', background: '#0F172A', color: 'white', border: 'none', borderRadius: '0.5rem', fontWeight: '700', cursor: 'pointer' }}
+                                        >
+                                            Confirm & Publish to Real Site
+                                        </button>
+                                        <button
+                                            onClick={() => setShowReview(false)}
+                                            style={{ flex: 1, padding: '1rem', background: 'white', color: '#0F172A', border: '1px solid #e2e8f0', borderRadius: '0.5rem', fontWeight: '600', cursor: 'pointer' }}
+                                        >
+                                            Make Changes
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
