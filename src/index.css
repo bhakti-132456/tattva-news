@@ -1778,8 +1778,10 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
 
 .hero-slider {
   position: relative;
-  width: calc(100% + 6rem);
+  width: auto;
+  /* Changed from calc to prevent overflow */
   margin-left: -3rem;
+  margin-right: -3rem;
   margin-bottom: 3rem;
   border-radius: 0;
   margin-top: 0;
@@ -2341,7 +2343,7 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
 
 /* Market Strip Styles - Sleek Bar */
 .market-strip {
-  width: calc(100% + 6rem);
+  width: auto;
   margin-left: -3rem;
   margin-right: -3rem;
   margin-top: -1px;
@@ -2472,11 +2474,13 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
 }
 
 .team-name {
-  color: rgba(255, 255, 255, 0.7);
+  color: white;
+  /* Explicitly white for visibility */
+  font-weight: 600;
 }
 
 .score-val {
-  color: white;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .text-muted {
@@ -2500,30 +2504,7 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
   }
 }
 
-.market-score-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
 
-.team-score {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.team-name {
-  color: var(--navy);
-}
-
-.score-val {
-  color: var(--navy);
-}
-
-.text-muted {
-  color: var(--text-muted) !important;
-}
 
 @media (max-width: 768px) {
   .market-strip-inner {
