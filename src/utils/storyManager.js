@@ -30,3 +30,25 @@ export const addStory = (story) => {
         return null;
     }
 };
+
+export const publishToSite = async (story) => {
+    try {
+        const response = await fetch('/api/publish', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(story),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to publish');
+        }
+
+        return true;
+    } catch (e) {
+        console.error("Publishing failed:", e);
+        return false;
+    }
+};
