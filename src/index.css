@@ -1845,7 +1845,8 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
   z-index: 10;
   display: flex;
   align-items: flex-end;
-  padding: 4rem 5rem 4rem 6rem;
+  padding: 6rem 8rem 6rem 8rem;
+  /* Increased padding */
   transition: all 0.4s ease;
 }
 
