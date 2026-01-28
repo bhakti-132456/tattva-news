@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import AudioPlayer from '../components/AudioPlayer';
+import StatisticsChart from '../components/StatisticsChart';
 import { getAllStories } from '../utils/storyManager';
 import { ArrowLeft, Clock, Share2, Bookmark } from 'lucide-react';
 
@@ -21,6 +22,40 @@ const Article = () => {
     if (!story) {
         return <div style={{ padding: '2rem' }}>Article not found</div>;
     }
+
+    // Render infographic component based on data
+    const renderInfographic = () => {
+        if (!story.hasInfographics || !story.infographicData) return null;
+
+        const { type, chartType, chartData, imageUrl } = story.infographicData;
+
+        if (type === 'chart' && chartData && chartData.length > 0) {
+            return (
+                <div className="article-infographic">
+                    <StatisticsChart
+                        data={chartData}
+                        chartType={chartType}
+                        title="Key Statistics"
+                    />
+                </div>
+            );
+        }
+
+        if (type === 'image' && imageUrl) {
+            return (
+                <figure className="article-infographic-image">
+                    <img src={imageUrl} alt="Infographic" />
+                    <figcaption>Infographic</figcaption>
+                </figure>
+            );
+        }
+
+        return null;
+    };
+
+    // Determine where to place infographic based on position setting
+    const infographicPosition = story.infographicData?.position || 'after-intro';
+    const infographicElement = renderInfographic();
 
     return (
         <div className="tattva-app">
@@ -71,13 +106,21 @@ const Article = () => {
                         </div>
                     )}
 
+                    {/* Infographic after introduction */}
+                    {infographicPosition === 'after-intro' && infographicElement}
+
                     <div className="article-content">
                         {story.contentHTML ? (
-                            <div dangerouslySetInnerHTML={{ __html: story.contentHTML }} />
+                            <>
+                                <div dangerouslySetInnerHTML={{ __html: story.contentHTML }} />
+                                {/* Inline infographic (middle of content) */}
+                                {infographicPosition === 'inline' && infographicElement}
+                            </>
                         ) : (
                             <>
-                                <p class="drop-cap">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                                <p className="drop-cap">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
                                 <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                                {infographicPosition === 'inline' && infographicElement}
                                 <h3>Key Takeaways</h3>
                                 <ul>
                                     <li>Economic indicators suggest a steady recovery.</li>
@@ -88,6 +131,9 @@ const Article = () => {
                             </>
                         )}
                     </div>
+
+                    {/* Infographic at end of article */}
+                    {infographicPosition === 'end' && infographicElement}
                 </article>
             </main>
         </div>
@@ -95,3 +141,4 @@ const Article = () => {
 };
 
 export default Article;
+
