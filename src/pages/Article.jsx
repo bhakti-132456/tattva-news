@@ -41,7 +41,7 @@ const Article = () => {
 
         // Create clean text for speech
         // If contentHTML exists, strip tags. Otherwise use fallback text.
-        let textToRead = story.title + ". " + story.excerpt + ". ";
+        let textToRead = story.title + ". ";
 
         if (story.contentHTML) {
             const tempDiv = document.createElement("div");
