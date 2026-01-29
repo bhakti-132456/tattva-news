@@ -5,9 +5,6 @@ import Sidebar from '../components/Sidebar';
 import { NewsCard } from '../components/Cards';
 import { getAllStories } from '../utils/storyManager';
 
-import { getStoriesByLanguage } from '../utils/storyManager';
-import { useLanguage } from '../context/LanguageContext';
-
 import { getStoriesByCategory } from '../utils/storyManager';
 import { useLanguage } from '../context/LanguageContext';
 
