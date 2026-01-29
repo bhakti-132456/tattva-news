@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useRef, useEffect } from 'react';
 import { chunkText, getTTSUrl, isTelugu } from '../utils/ttsUtils';
 import { playHDChunk } from '../utils/LocalTTS';
+import { checkCustomModel } from '../utils/NeuralAudioEngine';
 
 const AudioContext = createContext();
 
@@ -9,6 +10,7 @@ export const AudioProvider = ({ children }) => {
     const [currentTrack, setCurrentTrack] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [usingCustomVoice, setUsingCustomVoice] = useState(false);
 
     // Status for TTS Seeking
     const [ttsProgress, setTtsProgress] = useState({ current: 0, total: 0 });
@@ -21,6 +23,16 @@ export const AudioProvider = ({ children }) => {
     const ttsQueueRef = useRef([]);
     const currentChunkIndexRef = useRef(0);
     const ttsLangRef = useRef('en');
+
+    // Check for custom voice models on mount/track change
+    useEffect(() => {
+        const checkModels = async () => {
+            const lang = ttsLangRef.current;
+            const hasCustom = await checkCustomModel(lang);
+            setUsingCustomVoice(hasCustom);
+        };
+        checkModels();
+    }, [currentTrack]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -160,7 +172,7 @@ export const AudioProvider = ({ children }) => {
 
     return (
         <AudioContext.Provider value={{
-            currentTrack, isPlaying, isLoading, ttsProgress,
+            currentTrack, isPlaying, isLoading, ttsProgress, usingCustomVoice,
             playTrack, pauseTrack, togglePlay, seekTo, seekToPercent, audioRef
         }}>
             {children}
