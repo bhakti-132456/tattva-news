@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useRef, useEffect } from 'react';
 import { chunkText, getTTSUrl, isTelugu } from '../utils/ttsUtils';
+import { playHDChunk } from '../utils/LocalTTS';
 
 const AudioContext = createContext();
 
@@ -9,10 +10,12 @@ export const AudioProvider = ({ children }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Status for TTS Seeking
+    const [ttsProgress, setTtsProgress] = useState({ current: 0, total: 0 });
+
     // Refs for playback control
     const audioRef = useRef(new Audio());
     const synthRef = useRef(window.speechSynthesis);
-    const utteranceRef = useRef(null);
 
     // HD TTS specific state
     const ttsQueueRef = useRef([]);
@@ -24,7 +27,6 @@ export const AudioProvider = ({ children }) => {
 
         const handleEnded = () => {
             if (currentTrack?.type === 'tts' && ttsQueueRef.current.length > 0) {
-                // Play next chunk in HD TTS mode
                 playNextChunk();
             } else {
                 setIsPlaying(false);
@@ -51,6 +53,7 @@ export const AudioProvider = ({ children }) => {
         const nextIndex = currentChunkIndexRef.current + 1;
         if (nextIndex < ttsQueueRef.current.length) {
             currentChunkIndexRef.current = nextIndex;
+            setTtsProgress({ current: nextIndex, total: ttsQueueRef.current.length });
             const text = ttsQueueRef.current[nextIndex];
             const url = getTTSUrl(text, ttsLangRef.current);
 
@@ -66,7 +69,6 @@ export const AudioProvider = ({ children }) => {
     };
 
     const playTrack = async (track) => {
-        // Stop any current playback
         audioRef.current.pause();
         synthRef.current.cancel();
 
@@ -74,17 +76,14 @@ export const AudioProvider = ({ children }) => {
             setCurrentTrack(track);
             setIsPlaying(true);
 
-            // HD TTS ENGINE (Cloud Sequencer with Local Cache)
-            // 1. Detect language
             const lang = isTelugu(track.text) ? 'te' : 'en';
             ttsLangRef.current = lang;
 
-            // 2. Chunk text
             const chunks = chunkText(track.text);
             ttsQueueRef.current = chunks;
             currentChunkIndexRef.current = 0;
+            setTtsProgress({ current: 0, total: chunks.length });
 
-            // 3. Start first chunk
             if (chunks.length > 0) {
                 const url = getTTSUrl(chunks[0], lang);
                 try {
@@ -95,7 +94,6 @@ export const AudioProvider = ({ children }) => {
                 }
             }
         } else {
-            // Standard Audio Logic
             if (currentTrack?.src === track.src && currentTrack?.type !== 'tts') {
                 audioRef.current.play();
                 setIsPlaying(true);
@@ -108,8 +106,28 @@ export const AudioProvider = ({ children }) => {
         }
     };
 
+    const seekToPercent = async (percent) => {
+        if (currentTrack?.type === 'tts' && ttsQueueRef.current.length > 0) {
+            const index = Math.floor((percent / 100) * ttsQueueRef.current.length);
+            const safeIndex = Math.min(index, ttsQueueRef.current.length - 1);
+
+            currentChunkIndexRef.current = safeIndex;
+            setTtsProgress({ current: safeIndex, total: ttsQueueRef.current.length });
+
+            const text = ttsQueueRef.current[safeIndex];
+            const url = getTTSUrl(text, ttsLangRef.current);
+
+            setIsPlaying(true);
+            try {
+                await playHDChunk(url, audioRef);
+            } catch (err) {
+                console.error("Seek failed", err);
+            }
+        }
+    };
+
     const playNativeTTS = (text) => {
-        const utterance = new SpeechSynthesisUtterance(text);
+        const utterance = new window.SpeechSynthesisUtterance(text);
         const voices = synthRef.current.getVoices();
         const indianVoice = voices.find(v =>
             v.name.includes('Ravi') || v.name.includes('Heera') || v.lang === 'en-IN'
@@ -120,11 +138,7 @@ export const AudioProvider = ({ children }) => {
     };
 
     const pauseTrack = () => {
-        if (currentTrack?.type === 'tts') {
-            audioRef.current.pause();
-        } else {
-            audioRef.current.pause();
-        }
+        audioRef.current.pause();
         setIsPlaying(false);
     };
 
@@ -145,7 +159,10 @@ export const AudioProvider = ({ children }) => {
     };
 
     return (
-        <AudioContext.Provider value={{ currentTrack, isPlaying, isLoading, playTrack, pauseTrack, togglePlay, seekTo, audioRef }}>
+        <AudioContext.Provider value={{
+            currentTrack, isPlaying, isLoading, ttsProgress,
+            playTrack, pauseTrack, togglePlay, seekTo, seekToPercent, audioRef
+        }}>
             {children}
         </AudioContext.Provider>
     );

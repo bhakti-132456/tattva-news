@@ -3,7 +3,7 @@ import { useAudio } from '../context/AudioContext';
 import { Play, Pause, X, Maximize2, Minimize2 } from 'lucide-react';
 
 const GlobalPlayer = () => {
-    const { currentTrack, isPlaying, isLoading, togglePlay, audioRef, seekTo } = useAudio();
+    const { currentTrack, isPlaying, isLoading, ttsProgress, togglePlay, audioRef, seekTo, seekToPercent } = useAudio();
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -19,9 +19,13 @@ const GlobalPlayer = () => {
     }, [audioRef]);
 
     const handleSeek = (e) => {
-        const time = Number(e.target.value);
-        setCurrentTime(time);
-        seekTo(time);
+        const val = Number(e.target.value);
+        if (currentTrack?.type === 'tts') {
+            seekToPercent(val);
+        } else {
+            setCurrentTime(val);
+            seekTo(val);
+        }
     };
 
     const formatTime = (time) => {
@@ -32,6 +36,9 @@ const GlobalPlayer = () => {
     };
 
     if (!currentTrack) return null;
+
+    // Calculate % for TTS seek bar
+    const ttsPercent = ttsProgress.total > 0 ? (ttsProgress.current / ttsProgress.total) * 100 : 0;
 
     return (
         <div className={`global-player ${isExpanded ? 'expanded' : ''} ${isLoading ? 'is-loading' : ''}`}>
@@ -44,57 +51,43 @@ const GlobalPlayer = () => {
                     <div className="gp-title">{currentTrack.title}</div>
                     {isExpanded && (
                         <div className="gp-time">
-                            {currentTrack.type === 'tts' ? 'HD Stream' : `${formatTime(currentTime)} / ${currentTrack.duration}`}
+                            {currentTrack.type === 'tts'
+                                ? `Section ${ttsProgress.current + 1} of ${ttsProgress.total}`
+                                : `${formatTime(currentTime)} / ${currentTrack.duration}`
+                            }
                         </div>
                     )}
                 </div>
 
                 <div className="gp-controls">
-                    <button className="gp-play-btn" onClick={togglePlay} disabled={isLoading}>
+                    {/* Pause button should always be visible if track exists, only loading shows spinner */}
+                    <button className="gp-play-btn" onClick={togglePlay}>
                         {isLoading ? (
                             <div className="gp-spinner"></div>
                         ) : (
-                            isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />
+                            isPlaying ? <Pause size={24} fill="white" color="white" /> : <Play size={24} fill="white" color="white" />
                         )}
                     </button>
                     <button className="gp-expand-btn" onClick={() => setIsExpanded(!isExpanded)}>
-                        {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                        {isExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
                     </button>
                 </div>
             </div>
 
-            <div className="gp-progress-container">
-                {currentTrack.type === 'tts' ? (
-                    <div className="gp-seek-bar-placeholder" style={{
-                        height: '4px',
-                        background: 'rgba(255,255,255,0.1)',
+            <div className="gp-progress-container" style={{ padding: '0 1rem 0.5rem 1rem' }}>
+                <input
+                    type="range"
+                    min="0"
+                    max={currentTrack.type === 'tts' ? 100 : (duration || 100)}
+                    value={currentTrack.type === 'tts' ? ttsPercent : currentTime}
+                    onChange={handleSeek}
+                    className="gp-seek-bar"
+                    style={{
                         width: '100%',
-                        borderRadius: '0',
-                        overflow: 'hidden',
-                        position: 'relative'
-                    }}>
-                        {(isPlaying || isLoading) && (
-                            <div
-                                className={`tts-thinking-bar ${isLoading ? 'loading' : ''}`}
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    background: 'var(--primary)',
-                                    animation: isLoading ? 'shimmer 1s infinite linear' : 'pulse 1.5s infinite'
-                                }}
-                            ></div>
-                        )}
-                    </div>
-                ) : (
-                    <input
-                        type="range"
-                        min="0"
-                        max={duration || 100}
-                        value={currentTime}
-                        onChange={handleSeek}
-                        className="gp-seek-bar"
-                    />
-                )}
+                        cursor: 'pointer',
+                        accentColor: 'var(--primary)'
+                    }}
+                />
             </div>
         </div>
     );
