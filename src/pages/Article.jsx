@@ -9,17 +9,27 @@ import { useAudio } from '../context/AudioContext';
 import { ArrowLeft, Clock, Share2, Bookmark } from 'lucide-react';
 
 const Article = () => {
-    const stories = getAllStories();
     const { id } = useParams();
     const navigate = useNavigate();
+    const [story, setStory] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { playTrack } = useAudio();
 
-    const story = stories.find(s => s.id === id);
-
     useEffect(() => {
         window.scrollTo(0, 0);
+        const fetchStory = async () => {
+            setLoading(true);
+            const data = await getStoryById(id);
+            setStory(data);
+            setLoading(false);
+        };
+        fetchStory();
     }, [id]);
+
+    if (loading) {
+        return <div className="loading-container">Loading Article...</div>;
+    }
 
     if (!story) {
         return <div style={{ padding: '2rem' }}>Article not found</div>;

@@ -4,8 +4,9 @@
     "version": "1.0.0",
     "type": "module",
     "scripts": {
-        "dev": "vite",
-        "build": "vite build",
+        "dev": "node scripts/optimize-data.js && vite",
+        "build": "node scripts/optimize-data.js && vite build",
+        "optimize-data": "node scripts/optimize-data.js",
         "lint": "eslint .",
         "preview": "vite preview"
     },

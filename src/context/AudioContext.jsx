@@ -47,22 +47,25 @@ export const AudioProvider = ({ children }) => {
         };
     }, [currentTrack]);
 
-    const playNextChunk = () => {
+    const playNextChunk = async () => {
         const nextIndex = currentChunkIndexRef.current + 1;
         if (nextIndex < ttsQueueRef.current.length) {
             currentChunkIndexRef.current = nextIndex;
             const text = ttsQueueRef.current[nextIndex];
-            audioRef.current.src = getTTSUrl(text, ttsLangRef.current);
-            audioRef.current.play().catch(err => {
+            const url = getTTSUrl(text, ttsLangRef.current);
+
+            try {
+                await playHDChunk(url, audioRef);
+            } catch (err) {
                 console.error("Failed to play next chunk", err);
                 setIsPlaying(false);
-            });
+            }
         } else {
             setIsPlaying(false);
         }
     };
 
-    const playTrack = (track) => {
+    const playTrack = async (track) => {
         // Stop any current playback
         audioRef.current.pause();
         synthRef.current.cancel();
@@ -71,7 +74,7 @@ export const AudioProvider = ({ children }) => {
             setCurrentTrack(track);
             setIsPlaying(true);
 
-            // HD TTS ENGINE (Cloud Sequencer)
+            // HD TTS ENGINE (Cloud Sequencer with Local Cache)
             // 1. Detect language
             const lang = isTelugu(track.text) ? 'te' : 'en';
             ttsLangRef.current = lang;
@@ -83,11 +86,13 @@ export const AudioProvider = ({ children }) => {
 
             // 3. Start first chunk
             if (chunks.length > 0) {
-                audioRef.current.src = getTTSUrl(chunks[0], lang);
-                audioRef.current.play().catch(err => {
+                const url = getTTSUrl(chunks[0], lang);
+                try {
+                    await playHDChunk(url, audioRef);
+                } catch (err) {
                     console.warn("HD TTS failed, falling back to native", err);
                     playNativeTTS(track.text);
-                });
+                }
             }
         } else {
             // Standard Audio Logic

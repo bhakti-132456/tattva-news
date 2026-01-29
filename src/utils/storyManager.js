@@ -1,63 +1,117 @@
-
-// Import migrated stories if available, otherwise empty array
-import wpStoriesRaw from '../data/tattva-archives.json';
-
 const STORIES_KEY = 'tattva_published_stories';
+const API_BASE = '/api/stories';
 
-// Generate a URL-safe slug from title
-const generateSlug = (title) => {
-    const slug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .substring(0, 50);
-    return `${slug}-${Date.now()}`;
+// Internal cache to minimize redundant fetches
+const storiesCache = {
+    latest: null,
+    categories: {},
+    articles: {}
 };
 
-// Get all stories (published local + static demo stories + migrated stories)
-// NO CLEANING - RAW DATA ONLY FOR PERFORMANCE/STABILITY
-export const getAllStories = () => {
+// Get local stories (published local ONLY)
+const getLocalStories = () => {
     try {
-        const localStories = JSON.parse(localStorage.getItem(STORIES_KEY) || '[]');
-        const enhancedLocal = localStories.map(s => ({ ...s, language: s.language || 'en' }));
-
-        // Combine local and raw WP stories directly
-        return [...enhancedLocal, ...wpStoriesRaw];
+        const local = JSON.parse(localStorage.getItem(STORIES_KEY) || '[]');
+        return local.map(s => ({ ...s, language: s.language || 'en' }));
     } catch (e) {
-        console.error("Failed to load stories from local storage", e);
-        // Fallback to empty or just WP stories if local fails
-        return wpStoriesRaw || [];
+        console.error("Failed to load local stories", e);
+        return [];
     }
 };
 
-export const getStoriesByLanguage = (lang) => {
-    const all = getAllStories();
-    return all.filter(s => s.language === lang);
+// 1. Fetch Latest Stories Index (Paginated/Chunked)
+export const getLatestStories = async (lang = 'en') => {
+    if (storiesCache.latest) return storiesCache.latest.filter(s => s.language === lang);
+
+    try {
+        const response = await fetch(`${API_BASE}/latest.json`);
+        const remoteStories = await response.json();
+
+        const local = getLocalStories();
+        const combined = [...local, ...remoteStories];
+
+        storiesCache.latest = combined;
+        return combined.filter(s => s.language === lang);
+    } catch (e) {
+        console.error("Failed to fetch latest stories", e);
+        return getLocalStories().filter(s => s.language === lang);
+    }
 };
 
-// Get a single story by ID
-export const getStoryById = (id) => {
-    const stories = getAllStories();
-    return stories.find(s => s.id === id) || null;
+// 2. Fetch Story by ID (Full content loaded on demand)
+export const getStoryById = async (id) => {
+    // Check local storage first
+    const local = getLocalStories();
+    const foundLocal = local.find(s => s.id === id);
+    if (foundLocal) return foundLocal;
+
+    // Check cache
+    if (storiesCache.articles[id]) return storiesCache.articles[id];
+
+    try {
+        const response = await fetch(`${API_BASE}/article-${id}.json`);
+        if (!response.ok) throw new Error('Article not found');
+        const story = await response.json();
+
+        storiesCache.articles[id] = story;
+        return story;
+    } catch (e) {
+        console.error(`Failed to fetch story ${id}`, e);
+        return null;
+    }
+};
+
+// 3. Get Stories By Category (Fetched on demand)
+export const getStoriesByCategory = async (category, lang = 'en') => {
+    const safeName = category.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+    if (storiesCache.categories[safeName]) {
+        return storiesCache.categories[safeName].filter(s => s.language === lang);
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/category-${safeName}.json`);
+        const stories = await response.json();
+
+        storiesCache.categories[safeName] = stories;
+        return stories.filter(s => s.language === lang);
+    } catch (e) {
+        console.error(`Failed to fetch category ${category}`, e);
+        return [];
+    }
+};
+
+// Compatibility wrapper for components that still expect synchronous getAllStories
+// This now only returns what has already been loaded or the latest index
+export const getAllStories = () => {
+    const local = getLocalStories();
+    return [...local, ...(storiesCache.latest || [])];
+};
+
+// Compatibility for language filtering
+export const getStoriesByLanguage = (lang) => {
+    return getAllStories().filter(s => s.language === lang);
 };
 
 // Add a new story (save to localStorage)
 export const addStory = (story) => {
     try {
-        const localStories = JSON.parse(localStorage.getItem(STORIES_KEY) || '[]');
+        const localStories = getLocalStories();
         const newStory = {
             ...story,
-            id: generateSlug(story.title),
+            id: `local-${Date.now()}`,
             time: "Just Now",
             readTime: story.readTime || "5 min read",
-            type: story.hasAudio ? 'hero' : 'standard',
             publishedAt: new Date().toISOString(),
-            language: story.language || 'en' // Default new stories to English if not specified
+            language: story.language || 'en'
         };
 
-        // Add to the beginning of the list
         localStories.unshift(newStory);
         localStorage.setItem(STORIES_KEY, JSON.stringify(localStories));
+
+        // Update local cache
+        if (storiesCache.latest) storiesCache.latest.unshift(newStory);
+
         return newStory;
     } catch (e) {
         console.error("Failed to save story", e);
@@ -65,46 +119,16 @@ export const addStory = (story) => {
     }
 };
 
-// Delete a story by ID
+// Helper for admin management
+export { getLocalStories as getAdminStories };
 export const deleteStory = (id) => {
     try {
-        const localStories = JSON.parse(localStorage.getItem(STORIES_KEY) || '[]');
-        const filtered = localStories.filter(s => s.id !== id);
+        const local = getLocalStories();
+        const filtered = local.filter(s => s.id !== id);
         localStorage.setItem(STORIES_KEY, JSON.stringify(filtered));
         return true;
     } catch (e) {
         console.error("Failed to delete story", e);
         return false;
     }
-};
-
-// Publish story - fully local, no API
-export const publishToSite = async (story) => {
-    try {
-        // Simply save to localStorage - this IS the publish
-        const published = addStory(story);
-        if (published) {
-            console.log('Article published successfully:', published.id);
-            return true;
-        }
-        return false;
-    } catch (e) {
-        console.error("Publishing failed:", e);
-        return false;
-    }
-};
-
-// Get only locally published stories (for admin management)
-export const getLocalStories = () => {
-    try {
-        return JSON.parse(localStorage.getItem(STORIES_KEY) || '[]');
-    } catch (e) {
-        console.error("Failed to load local stories", e);
-        return [];
-    }
-};
-
-// Clear all local stories (for testing/reset)
-export const clearAllLocalStories = () => {
-    localStorage.removeItem(STORIES_KEY);
 };
