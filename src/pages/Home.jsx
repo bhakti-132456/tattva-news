@@ -206,11 +206,26 @@ const SideTrendingBox = ({ story, title }) => {
 
 const Home = () => {
     const { language } = useLanguage();
-    const stories = getStoriesByLanguage(language);
+    const [stories, setStories] = useState([]);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStories = async () => {
+            setLoading(true);
+            const data = await getLatestStories(language);
+            setStories(data);
+            setLoading(false);
+        };
+        fetchStories();
+    }, [language]);
 
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
     const closeSidebar = () => setSidebarOpen(false);
+
+    if (loading) {
+        return <div className="loading-container">Loading Tattva News...</div>;
+    }
 
     // Data Slicing Logic
     // 1. Hero: Top 3 stories for Slider (LEFT SIDE)

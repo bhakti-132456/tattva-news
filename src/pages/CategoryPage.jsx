@@ -8,20 +8,27 @@ import { getAllStories } from '../utils/storyManager';
 import { getStoriesByLanguage } from '../utils/storyManager';
 import { useLanguage } from '../context/LanguageContext';
 
+import { getStoriesByCategory } from '../utils/storyManager';
+import { useLanguage } from '../context/LanguageContext';
+
 const CategoryPage = () => {
     const { language } = useLanguage();
-    const stories = getStoriesByLanguage(language);
     const { cat } = useParams();
+    const [stories, setStories] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // Filter stories
-    // Handle case-insensitive matching
-    const categoryStories = stories.filter(s =>
-        s.category.toLowerCase() === cat.toLowerCase() ||
-        (cat.toLowerCase() === 'world' && s.category === 'World') ||
-        (cat.toLowerCase() === 'business' && s.category === 'Business') ||
-        (cat.toLowerCase() === 'tech' && (s.category === 'Tech' || s.category === 'Startups & Tech'))
-    );
+    useEffect(() => {
+        const fetchCategoryStories = async () => {
+            setLoading(true);
+            const data = await getStoriesByCategory(cat, language);
+            setStories(data);
+            setLoading(false);
+        };
+        fetchCategoryStories();
+    }, [cat, language]);
+
+    const categoryStories = stories;
 
     const prettyCat = cat.charAt(0).toUpperCase() + cat.slice(1);
 
