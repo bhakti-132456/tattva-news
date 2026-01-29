@@ -4,7 +4,7 @@ import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import AudioPlayer from '../components/AudioPlayer';
 import StatisticsChart from '../components/StatisticsChart';
-import { getAllStories } from '../utils/storyManager';
+import { getStoryById } from '../utils/storyManager';
 import { useAudio } from '../context/AudioContext';
 import { ArrowLeft, Clock, Share2, Bookmark } from 'lucide-react';
 
@@ -19,10 +19,15 @@ const Article = () => {
     useEffect(() => {
         window.scrollTo(0, 0);
         const fetchStory = async () => {
-            setLoading(true);
-            const data = await getStoryById(id);
-            setStory(data);
-            setLoading(false);
+            try {
+                setLoading(true);
+                const data = await getStoryById(id);
+                setStory(data);
+            } catch (err) {
+                console.error("Article fetch failed:", err);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchStory();
     }, [id]);
