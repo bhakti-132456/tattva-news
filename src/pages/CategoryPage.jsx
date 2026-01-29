@@ -17,10 +17,15 @@ const CategoryPage = () => {
 
     useEffect(() => {
         const fetchCategoryStories = async () => {
-            setLoading(true);
-            const data = await getStoriesByCategory(cat, language);
-            setStories(data);
-            setLoading(false);
+            try {
+                setLoading(true);
+                const data = await getStoriesByCategory(cat, language);
+                setStories(data || []);
+            } catch (err) {
+                console.error("Category fetch failed:", err);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchCategoryStories();
     }, [cat, language]);

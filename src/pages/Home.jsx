@@ -7,7 +7,7 @@ import MarketStrip from '../components/MarketStrip';
 import AudioPlayer from '../components/AudioPlayer';
 import HeroSlider from '../components/HeroSlider';
 import { NewsCard } from '../components/Cards';
-import { getAllStories, getStoriesByLanguage } from '../utils/storyManager';
+import { getLatestStories } from '../utils/storyManager';
 import { useLanguage } from '../context/LanguageContext';
 import { Play, ChevronRight, TrendingUp } from 'lucide-react';
 
@@ -212,10 +212,15 @@ const Home = () => {
 
     useEffect(() => {
         const fetchStories = async () => {
-            setLoading(true);
-            const data = await getLatestStories(language);
-            setStories(data);
-            setLoading(false);
+            try {
+                setLoading(true);
+                const data = await getLatestStories(language);
+                setStories(data || []);
+            } catch (err) {
+                console.error("Home fetch failed:", err);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchStories();
     }, [language]);
