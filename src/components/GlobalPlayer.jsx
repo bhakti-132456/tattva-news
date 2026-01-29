@@ -3,7 +3,7 @@ import { useAudio } from '../context/AudioContext';
 import { Play, Pause, X, Maximize2, Minimize2 } from 'lucide-react';
 
 const GlobalPlayer = () => {
-    const { currentTrack, isPlaying, isLoading, ttsProgress, togglePlay, audioRef, seekTo, seekToPercent } = useAudio();
+    const { currentTrack, isPlaying, isLoading, ttsProgress, usingCustomVoice, togglePlay, audioRef, seekTo, seekToPercent } = useAudio();
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -45,8 +45,21 @@ const GlobalPlayer = () => {
             <div className="gp-content">
                 <div className="gp-info">
                     <div className="gp-label">
-                        {currentTrack.type === 'tts' ? 'HD Narrating' : 'Now Playing'}
-                        {isLoading && <span className="gp-loading-text"> • Buffering HD Voice...</span>}
+                        {currentTrack.type === 'tts'
+                            ? (usingCustomVoice ? 'Professional Neural Voice' : 'HD Narrating')
+                            : 'Now Playing'
+                        }
+                        {usingCustomVoice && <span className="neural-badge" style={{
+                            marginLeft: '8px',
+                            background: 'var(--primary)',
+                            color: 'white',
+                            fontSize: '0.65rem',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontWeight: 'bold',
+                            letterSpacing: '0.05em'
+                        }}>LOCAL HD</span>}
+                        {isLoading && <span className="gp-loading-text"> • Buffering ...</span>}
                     </div>
                     <div className="gp-title">{currentTrack.title}</div>
                     {isExpanded && (
@@ -60,7 +73,6 @@ const GlobalPlayer = () => {
                 </div>
 
                 <div className="gp-controls">
-                    {/* Pause button should always be visible if track exists, only loading shows spinner */}
                     <button className="gp-play-btn" onClick={togglePlay}>
                         {isLoading ? (
                             <div className="gp-spinner"></div>
