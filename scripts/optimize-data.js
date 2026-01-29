@@ -17,9 +17,8 @@ try {
 
     console.log(`Processing ${stories.length} stories...`);
 
-    // 1. Create Index (latest 50 stories)
-    // We only need minimal data for the index/home page
-    const indexStories = stories.slice(0, 50).map(s => ({
+    // 1. Create Language-Specific Indices (latest 100 each for variety)
+    const englishStories = stories.filter(s => (s.language || 'en') === 'en').slice(0, 100).map(s => ({
         id: s.id,
         title: s.title,
         excerpt: s.excerpt,
@@ -27,9 +26,25 @@ try {
         image: s.image,
         time: s.time,
         readTime: s.readTime,
-        language: s.language || 'en'
+        language: 'en'
     }));
-    fs.writeFileSync(path.join(OUTPUT_DIR, 'latest.json'), JSON.stringify(indexStories));
+
+    const teluguStories = stories.filter(s => s.language === 'te').slice(0, 100).map(s => ({
+        id: s.id,
+        title: s.title,
+        excerpt: s.excerpt,
+        category: s.category,
+        image: s.image,
+        time: s.time,
+        readTime: s.readTime,
+        language: 'te'
+    }));
+
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'latest-en.json'), JSON.stringify(englishStories));
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'latest-te.json'), JSON.stringify(teluguStories));
+
+    // Legacy fallback for old calls
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'latest.json'), JSON.stringify([...teluguStories.slice(0, 25), ...englishStories.slice(0, 25)]));
 
     // 2. Create Category Indices
     const categoryGroups = {};
