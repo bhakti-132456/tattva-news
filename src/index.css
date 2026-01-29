@@ -2556,12 +2556,6 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
   gap: 1.5rem;
 }
 
-/* Adjust grid for mobile */
-@media (max-width: 640px) {
-  .trending-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* =============================================
    Statistics Charts & Infographics
@@ -2983,6 +2977,12 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
   padding: 1rem 0;
+}
+
+@media (max-width: 768px) {
+  .trending-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .trending-item {
