@@ -5,8 +5,12 @@ import Sidebar from '../components/Sidebar';
 import { NewsCard } from '../components/Cards';
 import { getAllStories } from '../utils/storyManager';
 
+import { getStoriesByLanguage } from '../utils/storyManager';
+import { useLanguage } from '../context/LanguageContext';
+
 const CategoryPage = () => {
-    const stories = getAllStories();
+    const { language } = useLanguage();
+    const stories = getStoriesByLanguage(language);
     const { cat } = useParams();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
