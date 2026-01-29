@@ -1,4 +1,6 @@
-import { stories as staticStories } from '../data/stories';
+
+// Import migrated stories if available, otherwise empty array
+import wpStoriesRaw from '../data/tattva-archives.json';
 
 const STORIES_KEY = 'tattva_published_stories';
 
@@ -12,16 +14,25 @@ const generateSlug = (title) => {
     return `${slug}-${Date.now()}`;
 };
 
-// Get all stories (published local + static demo stories)
+// Get all stories (published local + static demo stories + migrated stories)
+// NO CLEANING - RAW DATA ONLY FOR PERFORMANCE/STABILITY
 export const getAllStories = () => {
     try {
         const localStories = JSON.parse(localStorage.getItem(STORIES_KEY) || '[]');
-        // Local stories first (newest), then static stories
-        return [...localStories, ...staticStories];
+        const enhancedLocal = localStories.map(s => ({ ...s, language: s.language || 'en' }));
+
+        // Combine local and raw WP stories directly
+        return [...enhancedLocal, ...wpStoriesRaw];
     } catch (e) {
         console.error("Failed to load stories from local storage", e);
-        return staticStories;
+        // Fallback to empty or just WP stories if local fails
+        return wpStoriesRaw || [];
     }
+};
+
+export const getStoriesByLanguage = (lang) => {
+    const all = getAllStories();
+    return all.filter(s => s.language === lang);
 };
 
 // Get a single story by ID
@@ -40,7 +51,8 @@ export const addStory = (story) => {
             time: "Just Now",
             readTime: story.readTime || "5 min read",
             type: story.hasAudio ? 'hero' : 'standard',
-            publishedAt: new Date().toISOString()
+            publishedAt: new Date().toISOString(),
+            language: story.language || 'en' // Default new stories to English if not specified
         };
 
         // Add to the beginning of the list

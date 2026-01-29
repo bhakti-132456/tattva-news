@@ -57,14 +57,26 @@ const GlobalPlayer = () => {
             </div>
 
             <div className="gp-progress-container">
-                <input
-                    type="range"
-                    min="0"
-                    max={duration || 100}
-                    value={currentTime}
-                    onChange={handleSeek}
-                    className="gp-seek-bar"
-                />
+                {currentTrack.type === 'tts' ? (
+                    <div className="gp-seek-bar-placeholder" style={{
+                        height: '4px',
+                        background: 'var(--primary-light)',
+                        width: '100%',
+                        borderRadius: '2px',
+                        overflow: 'hidden'
+                    }}>
+                        {isPlaying && <div className="tts-thinking-bar" style={{ width: '100%', height: '100%', background: 'var(--primary)', animation: 'pulse 1.5s infinite' }}></div>}
+                    </div>
+                ) : (
+                    <input
+                        type="range"
+                        min="0"
+                        max={duration || 100}
+                        value={currentTime}
+                        onChange={handleSeek}
+                        className="gp-seek-bar"
+                    />
+                )}
             </div>
         </div>
     );

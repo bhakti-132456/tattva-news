@@ -1,5 +1,30 @@
 import React, { useState, useEffect, memo } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, Globe } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+
+const LanguageToggle = () => {
+    const { language, toggleLanguage } = useLanguage();
+    return (
+        <button
+            onClick={toggleLanguage}
+            style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontFamily: 'inherit',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: 'var(--navy)'
+            }}
+        >
+            <Globe size={16} />
+            {language === 'en' ? 'English' : 'తెలుగు'}
+        </button>
+    );
+};
 
 const Header = memo(({ toggleSidebar }) => {
     const [date, setDate] = useState('');
@@ -21,7 +46,7 @@ const Header = memo(({ toggleSidebar }) => {
                     <Menu size={24} color="var(--navy)" />
                 </button>
                 <a href="/" className="logo-container">
-                    <img src="/logo.png" alt="Tattva News" loading="eager" />
+                    <img src="/logo-new.png" alt="Tattva News" loading="eager" />
                 </a>
                 <div className="weather-widget">
                     <span>24°C</span> <span className="weather-city">Hyderabad</span>
@@ -32,6 +57,8 @@ const Header = memo(({ toggleSidebar }) => {
                 <span className="date-display">{date}</span>
                 <span className="divider">|</span>
                 <span className="live-indicator">● LIVE</span>
+                <span className="divider">|</span>
+                <LanguageToggle />
             </div>
         </header>
     );
