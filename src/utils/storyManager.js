@@ -21,17 +21,20 @@ const getLocalStories = () => {
 
 // 1. Fetch Latest Stories Index (Paginated/Chunked)
 export const getLatestStories = async (lang = 'en') => {
-    if (storiesCache.latest) return storiesCache.latest.filter(s => s.language === lang);
+    // Cache per language
+    const cacheKey = `latest-${lang}`;
+    if (storiesCache[cacheKey]) return storiesCache[cacheKey];
 
     try {
-        const response = await fetch(`${API_BASE}/latest.json`);
+        const response = await fetch(`${API_BASE}/latest-${lang}.json`);
         const remoteStories = await response.json();
 
         const local = getLocalStories();
-        const combined = [...local, ...remoteStories];
+        // Only include local stories of matching language
+        const combined = [...local.filter(s => s.language === lang), ...remoteStories];
 
-        storiesCache.latest = combined;
-        return combined.filter(s => s.language === lang);
+        storiesCache[cacheKey] = combined;
+        return combined;
     } catch (e) {
         console.error("Failed to fetch latest stories", e);
         return getLocalStories().filter(s => s.language === lang);

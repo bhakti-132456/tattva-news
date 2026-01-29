@@ -99,6 +99,7 @@ export const AudioProvider = ({ children }) => {
             if (chunks.length > 0) {
                 const url = getTTSUrl(chunks[0], lang);
                 try {
+                    isUsingNativeRef.current = false;
                     await playHDChunk(url, audioRef);
                 } catch (err) {
                     console.warn("HD TTS failed, falling back to native", err);
@@ -138,30 +139,46 @@ export const AudioProvider = ({ children }) => {
         }
     };
 
-    const playNativeTTS = (text) => {
-        const utterance = new window.SpeechSynthesisUtterance(text);
-        const voices = synthRef.current.getVoices();
-        const indianVoice = voices.find(v =>
-            v.name.includes('Ravi') || v.name.includes('Heera') || v.lang === 'en-IN'
-        );
-        if (indianVoice) utterance.voice = indianVoice;
-        utterance.onend = () => setIsPlaying(false);
-        synthRef.current.speak(utterance);
-    };
+    const isUsingNativeRef = useRef(false);
 
     const pauseTrack = () => {
-        audioRef.current.pause();
+        if (isUsingNativeRef.current) {
+            synthRef.current.pause();
+        } else {
+            audioRef.current.pause();
+        }
         setIsPlaying(false);
     };
 
     const resumeTrack = () => {
-        audioRef.current.play();
+        if (isUsingNativeRef.current) {
+            synthRef.current.resume();
+        } else {
+            audioRef.current.play();
+        }
         setIsPlaying(true);
     };
 
     const togglePlay = () => {
         if (isPlaying) pauseTrack();
         else resumeTrack();
+    };
+
+    const playNativeTTS = (text) => {
+        synthRef.current.cancel();
+        isUsingNativeRef.current = true;
+
+        const utterance = new window.SpeechSynthesisUtterance(text);
+        const voices = synthRef.current.getVoices();
+        const indianVoice = voices.find(v =>
+            v.name.includes('Ravi') || v.name.includes('Heera') || v.lang === 'en-IN'
+        );
+        if (indianVoice) utterance.voice = indianVoice;
+        utterance.onend = () => {
+            setIsPlaying(false);
+            isUsingNativeRef.current = false;
+        };
+        synthRef.current.speak(utterance);
     };
 
     const seekTo = (time) => {
