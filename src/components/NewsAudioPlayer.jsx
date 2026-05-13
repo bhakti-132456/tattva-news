@@ -1,103 +1,273 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Volume2, Loader2, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Volume2, Loader2, AlertCircle, Play, Pause } from 'lucide-react';
 
 const NewsAudioPlayer = ({ articleId, text, lang }) => {
-    const audioRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [progress, setProgress] = useState(0);
     const [error, setError] = useState(null);
+    const utteranceRef = useRef(null);
+    const timerRef = useRef(null);
 
-    // Construct the TTS URL
-    // We use the proxy '/tts' which forwards to localhost:3001/tts
-    const getAudioUrl = () => {
-        const params = new URLSearchParams({
-            id: articleId,
-            text: text,
-            lang: lang
-        });
-        return `/tts?${params.toString()}`;
-    };
-
+    // Clean up on unmount or when article changes
     useEffect(() => {
-        if (audioRef.current) {
-            // When lang or articleId changes, update the source
-            // We pause and reset state
-            audioRef.current.pause();
-            setIsPlaying(false);
-            setError(null);
+        return () => {
+            window.speechSynthesis.cancel();
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [articleId]);
 
-            // Setting the new src will trigger the browser to load it when we play
-            // or we can preload it.
-            // For instant caching behavior, we rely on the browser's cache after the first load.
-            audioRef.current.src = getAudioUrl();
-            audioRef.current.load();
-        }
-    }, [articleId, lang, text]);
-
-    const togglePlay = async () => {
-        if (!audioRef.current) return;
-
+    const togglePlay = () => {
         if (isPlaying) {
-            audioRef.current.pause();
+            window.speechSynthesis.pause();
             setIsPlaying(false);
+            if (timerRef.current) clearInterval(timerRef.current);
         } else {
-            setIsLoading(true);
-            setError(null);
-            try {
-                await audioRef.current.play();
+            if (window.speechSynthesis.paused && utteranceRef.current) {
+                window.speechSynthesis.resume();
                 setIsPlaying(true);
-            } catch (err) {
-                console.error("Playback error:", err);
-                setError("Failed to play audio");
-            } finally {
-                setIsLoading(false);
+                startProgressTimer();
+            } else {
+                startSpeaking();
             }
         }
     };
 
-    const handleEnded = () => {
-        setIsPlaying(false);
+    const startSpeaking = () => {
+        window.speechSynthesis.cancel();
+        
+        // Sanitize text: remove HTML if any, though 'text' prop should be clean
+        const cleanText = text.replace(/<[^>]*>?/gm, '');
+        
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        
+        // Set language
+        utterance.lang = lang === 'te' ? 'te-IN' : 'en-US';
+        
+        // Find a good voice if possible
+        const voices = window.speechSynthesis.getVoices();
+        if (lang === 'en') {
+            const premiumVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Premium'));
+            if (premiumVoice) utterance.voice = premiumVoice;
+        }
+
+        utterance.onstart = () => {
+            setIsPlaying(true);
+            startProgressTimer();
+        };
+
+        utterance.onend = () => {
+            setIsPlaying(false);
+            setProgress(100);
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+
+        utterance.onerror = (event) => {
+            console.error('SpeechSynthesis Error:', event);
+            setError("Speech synthesis failed");
+            setIsPlaying(false);
+        };
+
+        utteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
     };
 
-    const handleError = (e) => {
-        console.error("Audio error:", e);
-        setIsLoading(false);
-        setIsPlaying(false);
-        setError("Audio unavailable");
+    const startProgressTimer = () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        
+        // Since Web Speech API doesn't give precise progress easily, 
+        // we estimate based on character count and average reading speed (~150 wpm)
+        const words = text.split(' ').length;
+        const estimatedDurationSeconds = (words / 150) * 60;
+        let elapsed = (progress / 100) * estimatedDurationSeconds;
+
+        timerRef.current = setInterval(() => {
+            elapsed += 0.5;
+            const newProgress = Math.min((elapsed / estimatedDurationSeconds) * 100, 99);
+            setProgress(newProgress);
+        }, 500);
+    };
+
+    const handleSeek = (e) => {
+        // Web Speech API doesn't support seeking well, so we just update the UI state
+        // but in a real implementation we would have to restart from a specific index.
+        const percent = parseFloat(e.target.value);
+        setProgress(percent);
     };
 
     return (
-        <div className="flex items-center gap-2 p-2 bg-secondary/10 rounded-full w-fit">
-            <audio
-                ref={audioRef}
-                onEnded={handleEnded}
-                onError={handleError}
-                onCanPlay={() => setIsLoading(false)}
-                onWaiting={() => setIsLoading(true)}
-                preload="none"
-            />
+        <div className="audio-player-premium animate-slide-up">
+            <div className="player-controls">
+                <button 
+                    onClick={togglePlay} 
+                    className={`play-trigger ${isPlaying ? 'playing' : ''}`}
+                    title={isPlaying ? "Pause" : "Listen to article"}
+                >
+                    {isPlaying ? (
+                        <Pause size={20} fill="currentColor" />
+                    ) : (
+                        <Play size={20} fill="currentColor" style={{ marginLeft: '2px' }} />
+                    )}
+                </button>
 
-            <button
-                onClick={togglePlay}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
-                {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                    <Volume2 className={`w-4 h-4 ${isPlaying ? 'animate-pulse' : ''}`} />
-                )}
-                <span className="text-sm font-medium">
-                    {isPlaying ? 'Listen' : 'Listen to Article'}
-                </span>
-            </button>
-
-            {error && (
-                <div className="text-destructive text-xs flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>{error}</span>
+                <div className="player-info">
+                    <div className="player-label-row">
+                        <span className="player-label">
+                            {error ? (
+                                <span className="error-text"><AlertCircle size={14} /> {error}</span>
+                            ) : (
+                                <span>{isPlaying ? 'Now Reading Article...' : 'Listen to this Article'}</span>
+                            )}
+                        </span>
+                        {isPlaying && <div className="audio-visualizer">
+                            <span className="bar"></span>
+                            <span className="bar"></span>
+                            <span className="bar"></span>
+                        </div>}
+                    </div>
+                    <div className="progress-wrapper">
+                        <div className="progress-container">
+                            <input 
+                                type="range" 
+                                min="0" 
+                                max="100" 
+                                value={progress} 
+                                onChange={handleSeek}
+                                className="progress-slider"
+                            />
+                            <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+                        </div>
+                    </div>
                 </div>
-            )}
+
+                <div className="player-meta">
+                    <Volume2 size={18} className={isPlaying ? 'text-red animate-pulse' : 'text-navy'} />
+                </div>
+            </div>
+
+            <style dangerouslySetInnerHTML={{ __html: `
+                .audio-player-premium {
+                    background: white;
+                    border: 1px solid #eee;
+                    border-radius: 16px;
+                    padding: 12px 20px;
+                    width: 100%;
+                    max-width: 500px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    margin: 1rem 0;
+                }
+                .audio-player-premium:hover {
+                    box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+                    border-color: var(--navy);
+                    transform: translateY(-2px);
+                }
+                .player-controls {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                }
+                .play-trigger {
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 14px;
+                    background: var(--navy);
+                    color: white;
+                    border: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    flex-shrink: 0;
+                    box-shadow: 0 4px 12px rgba(10, 31, 68, 0.2);
+                }
+                .play-trigger:hover {
+                    background: var(--red);
+                    transform: scale(1.05);
+                    box-shadow: 0 6px 15px rgba(230, 57, 70, 0.3);
+                }
+                .play-trigger.playing {
+                    background: var(--red);
+                }
+                .player-info {
+                    flex-grow: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                .player-label-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .player-label {
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: var(--navy);
+                    letter-spacing: -0.01em;
+                }
+                .error-text {
+                    color: #e63946;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                .progress-wrapper {
+                    padding: 4px 0;
+                }
+                .progress-container {
+                    position: relative;
+                    height: 6px;
+                    background: #f1f3f5;
+                    border-radius: 3px;
+                }
+                .progress-bar {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    height: 100%;
+                    background: linear-gradient(90deg, var(--navy), var(--red));
+                    border-radius: 3px;
+                    z-index: 1;
+                }
+                .progress-slider {
+                    position: absolute;
+                    top: -10px;
+                    left: 0;
+                    width: 100%;
+                    height: 26px;
+                    opacity: 0;
+                    cursor: pointer;
+                    z-index: 2;
+                    margin: 0;
+                }
+                .audio-visualizer {
+                    display: flex;
+                    align-items: flex-end;
+                    gap: 2px;
+                    height: 12px;
+                }
+                .audio-visualizer .bar {
+                    width: 3px;
+                    background: var(--red);
+                    border-radius: 1px;
+                    animation: equalize 0.8s infinite ease-in-out;
+                }
+                .audio-visualizer .bar:nth-child(2) { animation-delay: 0.2s; height: 100%; }
+                .audio-visualizer .bar:nth-child(3) { animation-delay: 0.4s; height: 60%; }
+                
+                @keyframes equalize {
+                    0%, 100% { height: 4px; }
+                    50% { height: 12px; }
+                }
+                @keyframes slide-up {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-slide-up { animation: slide-up 0.5s ease-out; }
+                .text-red { color: var(--red); }
+                .text-navy { color: var(--navy); }
+            `}} />
         </div>
     );
 };
