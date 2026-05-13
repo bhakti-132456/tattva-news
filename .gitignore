@@ -2,3 +2,7 @@ node_modules
 .env*
 dist
 .vite
+.DS_Store
+._*
+public/api/stories/
+

@@ -8,9 +8,14 @@
         "build": "node scripts/optimize-data.js && vite build",
         "optimize-data": "node scripts/optimize-data.js",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "server": "node server/index.cjs",
+        "setup:tts": "node server/download-models.cjs"
     },
     "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.3",
+        "express": "^4.18.2",
         "lucide-react": "^0.292.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",

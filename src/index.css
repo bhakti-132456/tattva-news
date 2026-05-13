@@ -20,6 +20,55 @@
   --radius-lg: 0.75rem;
 }
 
+/* Brand Table Styles - Minimalist */
+.article-table-container {
+  margin: 2.5rem 0;
+  overflow-x: auto;
+}
+
+.brand-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+}
+
+.brand-table th, .brand-table td {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.brand-table th {
+  background-color: transparent !important;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+
+/* Row Headers (Top Row) - Brand Blue/Navy */
+.brand-table tr:first-child th {
+  color: var(--navy) !important;
+  border-bottom: 2px solid var(--navy);
+}
+
+/* Column Headers (First Column) - Brand Red */
+.brand-table tr td:first-child,
+.brand-table tr:not(:first-child) th:first-child {
+  color: var(--red) !important;
+  font-weight: 700;
+}
+
+.brand-table tr:nth-child(even) td {
+  background-color: transparent;
+}
+
+.brand-table td {
+  color: #334155;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

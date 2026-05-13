@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import AudioPlayer from '../components/AudioPlayer';
+import NewsAudioPlayer from '../components/NewsAudioPlayer';
 import StatisticsChart from '../components/StatisticsChart';
 import { getStoryById } from '../utils/storyManager';
-import { useAudio } from '../context/AudioContext';
-import { ArrowLeft, Clock, Share2, Bookmark } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { ArrowLeft, Share2, Bookmark } from 'lucide-react';
 
 const Article = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { language } = useLanguage();
     const [story, setStory] = useState(null);
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { playTrack } = useAudio();
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -32,6 +32,19 @@ const Article = () => {
         fetchStory();
     }, [id]);
 
+    const textToRead = useMemo(() => {
+        if (!story) return "";
+        let text = story.title + ". ";
+        if (story.contentHTML) {
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = story.contentHTML;
+            text += tempDiv.innerText;
+        } else {
+            text += "Lorem ipsum dolor sit amet. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.";
+        }
+        return text;
+    }, [story]);
+
     if (loading) {
         return <div className="loading-container">Loading Article...</div>;
     }
@@ -39,32 +52,6 @@ const Article = () => {
     if (!story) {
         return <div style={{ padding: '2rem' }}>Article not found</div>;
     }
-
-    // Handle TTS Listen
-    const handleListen = () => {
-        if (!story) return;
-
-        // Create clean text for speech
-        // If contentHTML exists, strip tags. Otherwise use fallback text.
-        let textToRead = story.title + ". ";
-
-        if (story.contentHTML) {
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = story.contentHTML;
-            textToRead += tempDiv.innerText;
-        } else {
-            // Fallback content from the component (simplified for TTS)
-            textToRead += "Lorem ipsum dolor sit amet. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.";
-        }
-
-        playTrack({
-            title: story.title,
-            src: '', // No src for TTS
-            duration: 'TTS',
-            type: 'tts',
-            text: textToRead
-        });
-    };
 
     // Render infographic component based on data
     const renderInfographic = () => {
@@ -120,29 +107,13 @@ const Article = () => {
                         </div>
                         <h1 className="article-title">{story.title}</h1>
 
-                        {/* NEW LISTEN BUTTON */}
-                        <button
-                            onClick={handleListen}
-                            className="listen-btn"
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.5rem 1rem',
-                                background: 'var(--primary-light)',
-                                color: 'var(--primary)',
-                                border: 'none',
-                                borderRadius: '2rem',
-                                fontWeight: '600',
-                                fontSize: '0.9rem',
-                                cursor: 'pointer',
-                                marginTop: '1rem',
-                                marginBottom: '1rem'
-                            }}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                            Listen to Article
-                        </button>
+                        <div style={{ margin: '1rem 0' }}>
+                            <NewsAudioPlayer
+                                articleId={id}
+                                text={textToRead}
+                                lang={language}
+                            />
+                        </div>
 
                         <p className="article-subtitle">{story.excerpt}</p>
 
@@ -164,15 +135,7 @@ const Article = () => {
                         </div>
                     </header>
 
-                    {story.hasAudio && (
-                        <div style={{ marginBottom: '3rem' }}>
-                            <AudioPlayer
-                                title={story.title}
-                                duration={story.audioDuration}
-                                audioSrc={story.audioSrc || '/audio-placeholder.mp3'}
-                            />
-                        </div>
-                    )}
+
 
                     {/* Infographic after introduction */}
                     {infographicPosition === 'after-intro' && infographicElement}

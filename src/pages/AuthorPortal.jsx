@@ -19,6 +19,12 @@ const AuthorPortal = () => {
         author: '',
         content: '',
         hasAudio: false,
+        language: 'en',
+        hasTable: false,
+        tableRows: 2,
+        tableCols: 2,
+        tableHeaderRow: true,
+        tableHeaderCol: false,
         hasInfographics: false,
         infographicType: 'text',
         statisticsText: '',
@@ -28,6 +34,7 @@ const AuthorPortal = () => {
     const [imageFile, setImageFile] = useState(null);
     const [audioFile, setAudioFile] = useState(null);
     const [infographicImageFile, setInfographicImageFile] = useState(null);
+    const [tableData, setTableData] = useState([['', ''], ['', '']]);
     const [submitStatus, setSubmitStatus] = useState(null);
     const [showReview, setShowReview] = useState(false);
     const [previewData, setPreviewData] = useState(null);
@@ -65,6 +72,20 @@ const AuthorPortal = () => {
         if (type === 'infographic') setInfographicImageFile(file);
     };
 
+    const handleTableDataChange = (r, c, value) => {
+        const newData = [...tableData];
+        newData[r][c] = value;
+        setTableData(newData);
+    };
+
+    const updateTableDimensions = (rows, cols) => {
+        const newData = Array.from({ length: rows }, (_, r) => 
+            Array.from({ length: cols }, (_, c) => (tableData[r] && tableData[r][c]) || '')
+        );
+        setTableData(newData);
+        setFormData(prev => ({ ...prev, tableRows: rows, tableCols: cols }));
+    };
+
     const convertToBase64 = (file) => new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -92,6 +113,22 @@ const AuthorPortal = () => {
             }
         }
 
+        // Build Table HTML if enabled
+        let tableHTML = '';
+        if (formData.hasTable) {
+            tableHTML = `<div class="article-table-container"><table class="brand-table">`;
+            tableData.forEach((row, rIndex) => {
+                tableHTML += '<tr>';
+                row.forEach((cell, cIndex) => {
+                    const isHeader = (formData.tableHeaderRow && rIndex === 0) || (formData.tableHeaderCol && cIndex === 0);
+                    const tag = isHeader ? 'th' : 'td';
+                    tableHTML += `<${tag}>${cell}</${tag}>`;
+                });
+                tableHTML += '</tr>';
+            });
+            tableHTML += `</table></div>`;
+        }
+
         const newStory = {
             title: formData.title,
             excerpt: formData.excerpt,
@@ -103,7 +140,8 @@ const AuthorPortal = () => {
             audioSrc: formData.hasAudio ? '/audio-placeholder.mp3' : '',
             hasInfographics: formData.hasInfographics,
             infographicData: infographicData,
-            contentHTML: formData.content.split('\n').map(p => `<p>${p}</p>`).join(''),
+            language: formData.language,
+            contentHTML: formData.content.split('\n').map(p => `<p>${p}</p>`).join('') + tableHTML,
             readTime: `${Math.ceil(formData.content.length / 500)} min read`
         };
 
@@ -234,6 +272,19 @@ const AuthorPortal = () => {
                             </div>
 
                             <div>
+                                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>Language</label>
+                                <select
+                                    name="language"
+                                    value={formData.language}
+                                    onChange={handleInputChange}
+                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
+                                >
+                                    <option value="en">English</option>
+                                    <option value="te">Telugu</option>
+                                </select>
+                            </div>
+
+                            <div>
                                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>Excerpt</label>
                                 <textarea
                                     name="excerpt"
@@ -272,6 +323,92 @@ const AuthorPortal = () => {
                                         <span style={{ color: '#64748B' }}>{imageFile ? imageFile.name : 'Click to upload image'}</span>
                                     </label>
                                 </div>
+                            </div>
+
+                            {/* Table Section */}
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    <input
+                                        type="checkbox"
+                                        name="hasTable"
+                                        checked={formData.hasTable}
+                                        onChange={handleInputChange}
+                                        id="has-table"
+                                    />
+                                    <label htmlFor="has-table" style={{ fontSize: '0.875rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <ImageIcon size={16} />
+                                        Include Data Table?
+                                    </label>
+                                </div>
+
+                                {formData.hasTable && (
+                                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '1.5rem', background: '#f8fafc' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>Rows</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="1" 
+                                                    max="10"
+                                                    value={formData.tableRows}
+                                                    onChange={(e) => updateTableDimensions(parseInt(e.target.value) || 1, formData.tableCols)}
+                                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>Columns</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="1" 
+                                                    max="6"
+                                                    value={formData.tableCols}
+                                                    onChange={(e) => updateTableDimensions(formData.tableRows, parseInt(e.target.value) || 1)}
+                                                    style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', cursor: 'pointer' }}>
+                                                <input type="checkbox" name="tableHeaderRow" checked={formData.tableHeaderRow} onChange={handleInputChange} />
+                                                Top Header Row
+                                            </label>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', cursor: 'pointer' }}>
+                                                <input type="checkbox" name="tableHeaderCol" checked={formData.tableHeaderCol} onChange={handleInputChange} />
+                                                First Header Column
+                                            </label>
+                                        </div>
+
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                                                <tbody>
+                                                    {tableData.map((row, r) => (
+                                                        <tr key={r}>
+                                                            {row.map((cell, c) => (
+                                                                <td key={c} style={{ padding: '2px' }}>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={cell}
+                                                                        onChange={(e) => handleTableDataChange(r, c, e.target.value)}
+                                                                        placeholder={((formData.tableHeaderRow && r === 0) || (formData.tableHeaderCol && c === 0)) ? 'Header' : 'Cell'}
+                                                                        style={{
+                                                                            width: '100%',
+                                                                            padding: '0.5rem',
+                                                                            border: '1px solid #e2e8f0',
+                                                                            background: (formData.tableHeaderRow && r === 0) ? 'rgba(15, 23, 42, 0.05)' : (formData.tableHeaderCol && c === 0) ? 'rgba(239, 68, 68, 0.05)' : 'white',
+                                                                            color: (formData.tableHeaderRow && r === 0) ? 'var(--navy)' : (formData.tableHeaderCol && c === 0) ? 'var(--red)' : 'inherit',
+                                                                            fontWeight: ((formData.tableHeaderRow && r === 0) || (formData.tableHeaderCol && c === 0)) ? '700' : '400'
+                                                                        }}
+                                                                    />
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <div>
