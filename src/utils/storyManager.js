@@ -8,11 +8,38 @@ const storiesCache = {
     articles: {}
 };
 
+// Helper to identify mock/test stories safely without affecting real stories (e.g. "protests", "tested", etc.)
+const isTestStory = (story) => {
+    if (!story) return false;
+    const id = (story.id || '').toLowerCase();
+    const title = (story.title || '').toLowerCase();
+    const excerpt = (story.excerpt || '').toLowerCase();
+    const content = (story.contentHTML || '').toLowerCase();
+    
+    // Check if ID starts with test/dummy/draft/placeholder or is a local test ID
+    if (/^(test|dummy|draft|placeholder|local-test)/i.test(id)) {
+        return true;
+    }
+    
+    // Check for exact words as whole words only (using word boundary \b)
+    // This ensures "protest", "protested", "testing", "tested", "tests", "samples" are NOT filtered out.
+    const testWordRegex = /\b(test|dummy|draft|lorem|ipsum|placeholder)\b/i;
+    
+    return testWordRegex.test(title) || testWordRegex.test(excerpt) || testWordRegex.test(content);
+};
+
 // Get local stories (published local ONLY)
 const getLocalStories = () => {
     try {
         const local = JSON.parse(localStorage.getItem(STORIES_KEY) || '[]');
-        return local.map(s => ({ ...s, language: s.language || 'en' }));
+        const cleanStories = local.filter(s => !isTestStory(s));
+        
+        // Auto-cleanup localStorage if test stories were removed
+        if (cleanStories.length !== local.length) {
+            localStorage.setItem(STORIES_KEY, JSON.stringify(cleanStories));
+        }
+        
+        return cleanStories.map(s => ({ ...s, language: s.language || 'en' }));
     } catch (e) {
         console.error("Failed to load local stories", e);
         return [];

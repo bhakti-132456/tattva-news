@@ -122,6 +122,64 @@ app.get('/tts', async (req, res) => {
     }
 });
 
+// Helper to run Git commands asynchronously
+const runGitCommand = (args) => {
+    return new Promise((resolve, reject) => {
+        const git = spawn('git', args, { cwd: path.join(__dirname, '..') });
+        let stdout = '';
+        let stderr = '';
+        
+        git.stdout.on('data', (data) => { stdout += data.toString(); });
+        git.stderr.on('data', (data) => { stderr += data.toString(); });
+        
+        git.on('close', (code) => {
+            if (code === 0) {
+                resolve(stdout);
+            } else {
+                reject(new Error(`Git command failed with code ${code}: ${stderr || stdout}`));
+            }
+        });
+        
+        git.on('error', (err) => {
+            reject(err);
+        });
+    });
+};
+
+// Automate staging, committing, pulling, and pushing to GitHub
+const pushChangesToGitHub = async (newStory) => {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) {
+        console.warn("GITHUB_TOKEN is not set in environment, skipping git push.");
+        return;
+    }
+    
+    try {
+        console.log("Staging changes in git...");
+        await runGitCommand(['add', 'src/data/tattva-archives.json', 'public/api/stories/']);
+        
+        console.log("Committing changes in git...");
+        const commitMsg = `Publish new story: ${newStory.title}`;
+        await runGitCommand([
+            '-c', 'user.name=Tattva News Publisher', 
+            '-c', 'user.email=publisher@tattvanews.com', 
+            'commit', 
+            '-m', commitMsg
+        ]);
+        
+        console.log("Pulling latest remote changes to prevent conflicts...");
+        const remoteUrl = `https://${token}@github.com/bhakti-132456/tattva-news.git`;
+        await runGitCommand(['pull', '--rebase', remoteUrl, 'main']);
+        
+        console.log("Pushing changes to GitHub...");
+        await runGitCommand(['push', remoteUrl, 'main']);
+        console.log("Git push successful.");
+    } catch (e) {
+        console.error("Failed to push changes to GitHub:", e.message);
+        throw e;
+    }
+};
+
 // Article Publishing Endpoint
 app.post('/api/publish', async (req, res) => {
     try {
@@ -150,10 +208,16 @@ app.post('/api/publish', async (req, res) => {
         console.log('Running data optimizer...');
         const optimizer = spawn('node', [OPTIMIZER_SCRIPT]);
         
-        optimizer.on('close', (code) => {
+        optimizer.on('close', async (code) => {
             if (code === 0) {
                 console.log('Optimization complete.');
-                res.status(200).json({ success: true, story: newStory });
+                try {
+                    await pushChangesToGitHub(newStory);
+                    res.status(200).json({ success: true, story: newStory });
+                } catch (gitErr) {
+                    console.error('Git push failed:', gitErr);
+                    res.status(500).send(`Save and optimization successful, but failed to push to main site: ${gitErr.message}`);
+                }
             } else {
                 console.error(`Optimizer failed with code ${code}`);
                 res.status(500).send('Save successful but optimization failed');
