@@ -169,11 +169,38 @@ export const AudioProvider = ({ children }) => {
         isUsingNativeRef.current = true;
 
         const utterance = new window.SpeechSynthesisUtterance(text);
+        const isTe = isTelugu(text);
+        utterance.lang = isTe ? 'te-IN' : 'en-US';
+
         const voices = synthRef.current.getVoices();
-        const indianVoice = voices.find(v =>
-            v.name.includes('Ravi') || v.name.includes('Heera') || v.lang === 'en-IN'
-        );
-        if (indianVoice) utterance.voice = indianVoice;
+        if (!isTe) {
+            // Try to find a premium English voice first
+            const premiumVoice = voices.find(v => 
+                v.lang.toLowerCase().startsWith('en') && 
+                (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural'))
+            );
+            if (premiumVoice) {
+                utterance.voice = premiumVoice;
+            } else {
+                // Try to find Ravi, Heera or any en-IN voice next as fallback
+                const indianVoice = voices.find(v =>
+                    v.lang.toLowerCase().startsWith('en') &&
+                    (v.name.includes('Ravi') || v.name.includes('Heera') || v.lang.toLowerCase() === 'en-in')
+                );
+                if (indianVoice) {
+                    utterance.voice = indianVoice;
+                } else {
+                    // Fallback to any English voice
+                    const anyEnglishVoice = voices.find(v => v.lang.toLowerCase().startsWith('en'));
+                    if (anyEnglishVoice) utterance.voice = anyEnglishVoice;
+                }
+            }
+        } else {
+            // Telugu fallback
+            const teluguVoice = voices.find(v => v.lang.toLowerCase().startsWith('te'));
+            if (teluguVoice) utterance.voice = teluguVoice;
+        }
+
         utterance.onend = () => {
             setIsPlaying(false);
             isUsingNativeRef.current = false;

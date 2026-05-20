@@ -41,13 +41,25 @@ const NewsAudioPlayer = ({ articleId, text, lang }) => {
         const utterance = new SpeechSynthesisUtterance(cleanText);
         
         // Set language
-        utterance.lang = lang === 'te' ? 'te-IN' : 'en-US';
+        const isTe = lang === 'te';
+        utterance.lang = isTe ? 'te-IN' : 'en-US';
         
         // Find a good voice if possible
         const voices = window.speechSynthesis.getVoices();
-        if (lang === 'en') {
-            const premiumVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Premium'));
-            if (premiumVoice) utterance.voice = premiumVoice;
+        if (!isTe) {
+            const premiumVoice = voices.find(v => 
+                v.lang.toLowerCase().startsWith('en') && 
+                (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural'))
+            );
+            if (premiumVoice) {
+                utterance.voice = premiumVoice;
+            } else {
+                const anyEnglishVoice = voices.find(v => v.lang.toLowerCase().startsWith('en'));
+                if (anyEnglishVoice) utterance.voice = anyEnglishVoice;
+            }
+        } else {
+            const teluguVoice = voices.find(v => v.lang.toLowerCase().startsWith('te'));
+            if (teluguVoice) utterance.voice = teluguVoice;
         }
 
         utterance.onstart = () => {
