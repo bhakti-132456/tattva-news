@@ -759,6 +759,18 @@ a {
   margin-bottom: 1.5rem;
 }
 
+.article-content h1,
+.article-content h2,
+.article-content .wp-block-heading {
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  font-family: inherit;
+  font-weight: normal;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
 .drop-cap::first-letter {
   float: left;
   font-size: 4rem;
@@ -2242,12 +2254,17 @@ input[type=range].audio-seek-bar::-webkit-slider-thumb:hover {
 @media (max-width: 1024px) {
   .news-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  .news-grid > div:nth-child(9) {
+    display: none; /* Hide the 9th item on tablet/mobile to create an exact 2x4 grid (8 items) */
   }
 }
 
 @media (max-width: 640px) {
   .news-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns for mobile */
+    gap: 1rem; /* Compact gap for mobile viewports */
   }
 }
 

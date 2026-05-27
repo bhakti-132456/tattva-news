@@ -6,7 +6,7 @@ import DashboardWidget from '../components/DashboardWidget';
 import MarketStrip from '../components/MarketStrip';
 import AudioPlayer from '../components/AudioPlayer';
 import HeroSlider from '../components/HeroSlider';
-import { NewsCard } from '../components/Cards';
+import { NewsCard, NativeAdCard } from '../components/Cards';
 import { getLatestStories } from '../utils/storyManager';
 import { useLanguage } from '../context/LanguageContext';
 import { Play, ChevronRight, TrendingUp } from 'lucide-react';
@@ -144,19 +144,42 @@ const TrendingSection = ({ categories }) => {
 };
 
 const NewsGrid = ({ stories }) => {
+    const gridItems = [];
+    let storyCount = 0;
+    
+    // Build a precise 9-item grid: 7 stories and 2 ads
+    // Ad 1 placed at index 2 (3rd item)
+    // Ad 2 placed at index 6 (7th item)
+    for (let i = 0; i < 9; i++) {
+        if (i === 2) {
+            gridItems.push({ isAd: true, id: 'ad-placeholder-1' });
+        } else if (i === 6) {
+            gridItems.push({ isAd: true, id: 'ad-placeholder-2' });
+        } else {
+            if (stories[storyCount]) {
+                gridItems.push(stories[storyCount]);
+                storyCount++;
+            }
+        }
+    }
+
     return (
         <div className="news-grid-section animate-fade-in">
             <div className="section-header">
                 <h2 className="section-title">Latest Stories</h2>
             </div>
             <div className="news-grid">
-                {stories.map((story, index) => (
+                {gridItems.map((item, index) => (
                     <div
-                        key={story.id}
+                        key={item.id}
                         className="animate-fade-in"
                         style={{ animationDelay: `${index * 0.08}s` }}
                     >
-                        <NewsCard story={story} />
+                        {item.isAd ? (
+                            <NativeAdCard />
+                        ) : (
+                            <NewsCard story={item} />
+                        )}
                     </div>
                 ))}
             </div>
@@ -280,7 +303,7 @@ const Home = () => {
     // 4. Grid: Everything else
     const gridStories = stories
         .filter(s => !heroIds.has(s.id) && !sideIds.has(s.id) && !trendingIds.has(s.id))
-        .slice(0, 6);
+        .slice(0, 7);
 
     return (
         <div className="tattva-app">

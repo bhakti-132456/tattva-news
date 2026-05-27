@@ -8,6 +8,61 @@ import { getStoryById } from '../utils/storyManager';
 import { useLanguage } from '../context/LanguageContext';
 import { ArrowLeft, Share2, Bookmark } from 'lucide-react';
 
+const NativeArticleAd = () => {
+    return (
+        <div 
+            className="native-article-ad animate-fade-in"
+            style={{
+                margin: '2.5rem 0',
+                padding: '1.5rem',
+                border: '1px dashed var(--accent)',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                display: 'flex',
+                gap: '1.5rem',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                cursor: 'pointer'
+            }}
+            onClick={() => window.open('https://example.com', '_blank')}
+        >
+            <div style={{
+                flex: '1 1 150px',
+                height: '100px',
+                background: 'rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px',
+                position: 'relative'
+            }}>
+                <span style={{ color: 'var(--accent)', fontWeight: 'bold', letterSpacing: '1px' }}>Ad Here</span>
+                <span style={{
+                    position: 'absolute',
+                    top: '6px',
+                    left: '6px',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    color: '#fff',
+                    fontSize: '0.55rem',
+                    padding: '1px 4px',
+                    borderRadius: '2px',
+                    textTransform: 'uppercase',
+                    fontWeight: 'bold'
+                }}>Sponsored</span>
+            </div>
+            <div style={{ flex: '2 1 300px', textAlign: 'left' }}>
+                <span style={{ color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Special Partner Offer</span>
+                <h4 style={{ margin: '0.25rem 0 0.5rem 0', color: 'var(--text-color)', fontSize: '1.1rem', fontWeight: '600' }}>
+                    Access Deep Global Insights & Analysis
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-light)', lineHeight: '1.4' }}>
+                    Subscribe to Tattva Premium for ad-free immersive reading, priority briefings, and exclusive market intelligence charts. Start your free trial today.
+                </p>
+            </div>
+        </div>
+    );
+};
+
 const Article = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -144,6 +199,7 @@ const Article = () => {
                         {story.contentHTML ? (
                             <>
                                 <div dangerouslySetInnerHTML={{ __html: story.contentHTML }} />
+                                <NativeArticleAd />
                                 {/* Inline infographic (middle of content) */}
                                 {infographicPosition === 'inline' && infographicElement}
                             </>
@@ -151,6 +207,7 @@ const Article = () => {
                             <>
                                 <p className="drop-cap">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
                                 <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                                <NativeArticleAd />
                                 {infographicPosition === 'inline' && infographicElement}
                                 <h3>Key Takeaways</h3>
                                 <ul>
