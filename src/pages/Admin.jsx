@@ -5,13 +5,14 @@ import Sidebar from '../components/Sidebar';
 import StatisticsChart from '../components/StatisticsChart';
 import AnalyticsPanel from '../components/Admin/AnalyticsPanel';
 import ArticleTable from '../components/Admin/ArticleTable';
+import CensusAdminPanel from '../components/Admin/CensusAdminPanel';
 import { parseStatistics } from '../utils/statisticsParser';
 import { Lock, Upload, Image as ImageIcon, Mic, CheckCircle, AlertCircle, BarChart2, PieChart } from 'lucide-react';
 
 const Admin = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [activeTab, setActiveTab] = useState('analytics'); // 'analytics', 'manage', 'new'
+    const [activeTab, setActiveTab] = useState('analytics'); // 'analytics', 'manage', 'new', 'census'
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
@@ -283,12 +284,29 @@ const Admin = () => {
                             >
                                 Post New
                             </button>
+                            <button
+                                onClick={() => setActiveTab('census')}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '0.375rem',
+                                    border: 'none',
+                                    background: activeTab === 'census' ? '#0F172A' : 'transparent',
+                                    color: activeTab === 'census' ? 'white' : '#64748B',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem'
+                                }}
+                            >
+                                Census Data
+                            </button>
                         </div>
                     </div>
 
                     {activeTab === 'analytics' && <AnalyticsPanel />}
 
                     {activeTab === 'manage' && <ArticleTable />}
+
+                    {activeTab === 'census' && <CensusAdminPanel />}
 
                     {activeTab === 'new' && (
                         <>

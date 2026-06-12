@@ -3,6 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const sqlite3 = require('sqlite3').verbose();
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
@@ -20,6 +21,26 @@ const OPTIMIZER_SCRIPT = path.join(__dirname, '../scripts/optimize-data.js');
 // Configuration from .env or defaults
 const PIPER_PATH = process.env.PIPER_PATH || 'piper';
 const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
+
+// Setup SQLite Database
+const CENSUS_DB_PATH = path.join(__dirname, 'census.sqlite');
+const db = new sqlite3.Database(CENSUS_DB_PATH, (err) => {
+    if (err) {
+        console.error('Error opening database', err.message);
+    } else {
+        db.run(`CREATE TABLE IF NOT EXISTS submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            phone TEXT,
+            email TEXT,
+            proficiency TEXT,
+            studyDetails TEXT,
+            photoBase64 TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+        console.log('Connected to the SQLite database.');
+    }
+});
 
 // Ensure directories exist
 ['en', 'te'].forEach(lang => {
@@ -180,6 +201,39 @@ const pushChangesToGitHub = async (newStory) => {
     }
 };
 
+const pushCensusToGitHub = async () => {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) {
+        console.warn("GITHUB_TOKEN is not set in environment, skipping git push for census.");
+        return;
+    }
+    
+    try {
+        console.log("Staging census.sqlite in git...");
+        await runGitCommand(['add', 'server/census.sqlite']);
+        
+        console.log("Committing census changes in git...");
+        const commitMsg = `Update Census Database`;
+        await runGitCommand([
+            '-c', 'user.name=Tattva News Publisher', 
+            '-c', 'user.email=publisher@tattvanews.com', 
+            'commit', 
+            '-m', commitMsg
+        ]);
+        
+        console.log("Pulling latest remote changes to prevent conflicts...");
+        const remoteUrl = `https://${token}@github.com/bhakti-132456/tattva-news.git`;
+        await runGitCommand(['pull', '--rebase', remoteUrl, 'main']);
+        
+        console.log("Pushing census changes to GitHub...");
+        await runGitCommand(['push', remoteUrl, 'main']);
+        console.log("Git push for census successful.");
+    } catch (e) {
+        console.error("Failed to push census changes to GitHub:", e.message);
+        // Don't throw, we just log it so the request still succeeds
+    }
+};
+
 // Article Publishing Endpoint
 app.post('/api/publish', async (req, res) => {
     try {
@@ -228,6 +282,38 @@ app.post('/api/publish', async (req, res) => {
         console.error('Publishing error:', error);
         res.status(500).send('Internal server error during publishing');
     }
+});
+
+// Census API Endpoints
+app.post('/api/census', (req, res) => {
+    const { name, phone, email, proficiency, studyDetails, photoBase64 } = req.body;
+    
+    if (!name || !phone || !email || !proficiency || !photoBase64) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const sql = `INSERT INTO submissions (name, phone, email, proficiency, studyDetails, photoBase64) VALUES (?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [name, phone, email, proficiency, studyDetails, photoBase64], function(err) {
+        if (err) {
+            console.error('Error saving census submission:', err.message);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        // Push the updated sqlite DB to GitHub
+        pushCensusToGitHub();
+        
+        res.status(200).json({ success: true, id: this.lastID });
+    });
+});
+
+app.get('/api/census', (req, res) => {
+    db.all(`SELECT * FROM submissions ORDER BY timestamp DESC`, [], (err, rows) => {
+        if (err) {
+            console.error('Error retrieving census data:', err.message);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.status(200).json(rows);
+    });
 });
 
 app.listen(PORT, () => {

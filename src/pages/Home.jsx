@@ -227,6 +227,21 @@ const SideTrendingBox = ({ story, title }) => {
     );
 };
 
+const CensusPromoBox = () => {
+    const navigate = useNavigate();
+    return (
+        <div className="side-trending-box" onClick={() => navigate('/census')} style={{ background: '#0F172A' }}>
+            <div className="side-trending-image" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#dc2626' }}>
+                <h3 style={{ color: 'white', fontSize: '1.75rem', fontWeight: 'bold', textAlign: 'center', padding: '1rem', margin: 0, fontFamily: 'Outfit, sans-serif' }}>Sanskrit Census 2026</h3>
+            </div>
+            <div className="side-trending-info" style={{ background: '#0F172A', color: 'white' }}>
+                <span className="side-category" style={{ color: '#94a3b8' }}>Special Initiative</span>
+                <h4 className="side-title" style={{ color: 'white', fontSize: '1rem' }}>Join the movement. Register your proficiency and claim your certificate today!</h4>
+            </div>
+        </div>
+    );
+};
+
 const Home = () => {
     const { language } = useLanguage();
     const [stories, setStories] = useState([]);
@@ -319,8 +334,8 @@ const Home = () => {
                         <HeroSlider stories={heroStories} />
                     </div>
                     <div className="hero-side-area">
-                        {sideStories.length > 0 && <SideTrendingBox story={sideStories[0]} title="Must Read" />}
-                        {sideStories.length > 1 && <SideTrendingBox story={sideStories[1]} title="Editors Pick" />}
+                        <CensusPromoBox />
+                        {sideStories.length > 0 && <SideTrendingBox story={sideStories[0]} title="Editors Pick" />}
                     </div>
                 </div>
 
