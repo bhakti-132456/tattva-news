@@ -9,7 +9,8 @@ const CensusAdminPanel = () => {
     useEffect(() => {
         const fetchSubmissions = async () => {
             try {
-                const response = await fetch('/api/census');
+                const API_URL = import.meta.env.VITE_API_URL || '';
+                const response = await fetch(`${API_URL}/api/census`);
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
