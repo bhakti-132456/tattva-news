@@ -7,7 +7,8 @@ export default defineConfig({
     server: {
         proxy: {
             '/tts': 'http://localhost:3001',
-            '/api/publish': 'http://localhost:3001'
+            '/api/publish': 'http://localhost:3001',
+            '/api/census': 'http://localhost:3001'
         }
     }
 })

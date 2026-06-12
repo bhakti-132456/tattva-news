@@ -150,7 +150,7 @@ const Census = () => {
             setErrorMsg('');
 
             // 1. Save Data to SQLite API
-            const response = await fetch('http://localhost:3001/api/census', {
+            const response = await fetch('/api/census', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
