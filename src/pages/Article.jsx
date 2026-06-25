@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
-import NewsAudioPlayer from '../components/NewsAudioPlayer';
 import StatisticsChart from '../components/StatisticsChart';
 import { getStoryById } from '../utils/storyManager';
 import { useLanguage } from '../context/LanguageContext';
@@ -161,14 +160,6 @@ const Article = () => {
                             <span>{story.time}</span>
                         </div>
                         <h1 className="article-title">{story.title}</h1>
-
-                        <div style={{ margin: '1rem 0' }}>
-                            <NewsAudioPlayer
-                                articleId={id}
-                                text={textToRead}
-                                lang={language}
-                            />
-                        </div>
 
                         <p className="article-subtitle">{story.excerpt}</p>
 

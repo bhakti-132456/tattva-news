@@ -8,6 +8,7 @@ export const LanguageProvider = ({ children }) => {
 
     useEffect(() => {
         localStorage.setItem('tattva_language', language);
+        document.documentElement.setAttribute('lang', language);
     }, [language]);
 
     const toggleLanguage = () => {

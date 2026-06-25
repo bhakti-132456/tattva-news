@@ -348,9 +348,6 @@ const Home = () => {
 
                     {/* Newsletter CTA */}
                     <NewsletterSection />
-
-                    {/* Deep Dive Section */}
-                    <DeepDiveSection stories={stories} />
                 </div>
             </main>
         </div>
